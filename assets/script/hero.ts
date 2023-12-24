@@ -1,5 +1,4 @@
 import { _decorator, Component, Node, PhysicsSystem2D, Contact2DType, Collider2D, IPhysics2DContact, RigidBody, RigidBody2D, EPhysics2DDrawFlags, log} from 'cc';
-import { block } from './block';
 const { ccclass, property } = _decorator;
 
 @ccclass('hero')

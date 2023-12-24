@@ -1,7 +1,8 @@
 {
-  "name": "test2D",
+  "name": "DanceParadise",
   "uuid": "9abc675e-44ab-49b7-b04d-09b816d9ea62",
   "creator": {
     "version": "3.8.1"
-  }
+  },
+  "description": ""
 }

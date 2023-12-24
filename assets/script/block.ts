@@ -1,6 +1,5 @@
 import { _decorator, Component, Node, Vec3 ,log, tween, game, UITransform, Animation } from 'cc';
 const { ccclass, property } = _decorator;
-import { Game } from './game';
 
 @ccclass('block')
 export class block extends Component {
@@ -8,7 +7,7 @@ export class block extends Component {
     private pos_pointParent:Vec3
     private arrChildren:Node[]=[]
     public collide:boolean=false
-    public pos_pointWorld:Vec3
+    public pos_pointWorld:Vec3  //中心原点位置
     public score:number
     public blockType:number
 
@@ -43,7 +42,8 @@ export class block extends Component {
         this.displayBlock()
     }
 
-    touchBegin(dt){  //蓄力动作
+    //蓄力动作
+    touchBegin(dt){  
         let scaleY=this.node.scale.y
         let scaleX=this.node.scale.x
         scaleY-=dt/6
@@ -65,6 +65,7 @@ export class block extends Component {
         }
     }
 
+    //block结束时的动作
     touchEnd(){
         window.gameSubject.hero.setScale(1,1)
         let scaleY=1-this.node.scale.y
@@ -75,6 +76,7 @@ export class block extends Component {
             .start()
     }
 
+    // 显示块
     displayBlock(){
         let chiledren=this.node.children
         for(let i=0;i<chiledren.length;i++){
@@ -86,11 +88,13 @@ export class block extends Component {
         }
     }
 
+    // 设置中心点位置
     setPointPos(){
         let pos_node=this.node.getPosition()
         this.pos_pointWorld=new Vec3(pos_node.x+this.pos_pointParent.x,pos_node.y+this.pos_pointParent.y)
     }
 
+    // 播放动画
     playAnim(){
         const animationComponent = this.arrChildren[this.blockType].getChildByName('block').getComponent(Animation);
         if(animationComponent){
