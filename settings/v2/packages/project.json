@@ -1,0 +1,27 @@
+{
+  "__version__": "1.0.6",
+  "general": {
+    "designResolution": {
+      "width": 720,
+      "height": 1280
+    }
+  },
+  "custom_joint_texture_layouts": [],
+  "physics": {
+    "collisionGroups": [
+      {
+        "index": 1,
+        "name": "block"
+      },
+      {
+        "index": 2,
+        "name": "hero"
+      }
+    ],
+    "collisionMatrix": {
+      "0": 0,
+      "1": 4,
+      "2": 2
+    }
+  }
+}
