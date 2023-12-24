@@ -15,26 +15,23 @@ export class Game extends Component {
     @property(Node)
     itemParent: Node;
 
-    @property(Prefab)
-    pre_item: Prefab;
-
     @property(Node)
     nodePlay: Node;
 
     @property(Node)
     nodeReady: Node;
 
-    @property(Prefab)
-    pre_block:Prefab
+    @property(Node)
+    nodeOver:Node
+
+    @property(Node)
+    specialAperture:Node
 
     @property(Node)
     hero:Node
 
     @property(Node)
     heroPoint:Node
-
-    @property(Node)
-    nodeOver:Node
 
     @property(Label)
     score:Label
@@ -47,21 +44,24 @@ export class Game extends Component {
 
     @property(Label)
     specialScore:Label
+    
+    @property(Prefab)
+    pre_item: Prefab;
 
-    @property(Node)
-    specialAperture:Node
+    @property(Prefab)
+    pre_block:Prefab
 
     @property(VideoPlayer)
     videoPlayer:VideoPlayer 
 
     private blockPool=new NodePool;
     private isMoving:boolean=false; // 是否正在移动
-    private isTouchBegin:boolean=false;
+    private isTouchBegin:boolean=false;  //点击开始按钮
+    private isTouchStart:boolean=true  //开始点击
     private timeTouch:number=0
-    private isTouchStart:boolean=true
     private currentScore:number=0
     private doubleScore:number=1
-    public isGetScore:number=-1
+    public blockGetScore:number=-1  //每个块的得分
     public gameType:number=0;  //0:ready 1:play 2:over
 
     start() {
@@ -69,30 +69,31 @@ export class Game extends Component {
     }
 
     onLoad(){
-        window.gameSubject=this
+        window.gameSubject=this  //设置game为全局
         this.nodeRankings.active=false  //最开始不显示排行榜
         this.nodePlay.active=false
-        this.addItem(20)
-        this.registerTouch()
-        this.gameType=0
-        this.doubleScore=1
         this.hero.active=false
         this.nodeOver.active=false
-        let specialScoreUI=this.specialScore.node.getComponent(UIOpacity)
+        this.addItem(20)
+        this.registerTouch()
+        let specialScoreUI=this.specialScore.node.getComponent(UIOpacity)  //设置透明度
         specialScoreUI.opacity=0
         let specialApertureUI=this.specialAperture.getComponent(UIOpacity)
         specialApertureUI.opacity=0
+        this.gameType=0
+        this.doubleScore=1
     }
 
+    //分数处理
     addScore(num){
-        if(this.callBackGetScore){
-            this.unschedule(this.callBackGetScore)
-        }
+        // if(this.callBackGetScore){
+        //     this.unschedule(this.callBackGetScore)
+        // }
         if(num==2){
             this.doubleScore*=2
             num=this.doubleScore
             let maxIndex=this.hero.getSiblingIndex()
-            this.specialAperture.setSiblingIndex(maxIndex-1)
+            this.specialAperture.setSiblingIndex(maxIndex-1)  //设置优先级
             this.specialAperture.setPosition(this.hero.getPosition().x,this.hero.getPosition().y+20)
             let specialApertureUI=this.specialAperture.getComponent(UIOpacity)
             specialApertureUI.opacity=255
@@ -134,7 +135,7 @@ export class Game extends Component {
                 if(cnt==2&&Block.blockType>2) {
                     this.scheduleOnce(function(){
                         this.callBackGetScore(children[i].getComponent(block))
-                    },5)
+                    },3)
                 }
             }
         }
@@ -146,6 +147,7 @@ export class Game extends Component {
         node.playAnim()
     }
     
+    //判断生成块的距离并生成
     judDis(){
         if(this.isMoving) return
         this.isMoving=true
@@ -160,13 +162,15 @@ export class Game extends Component {
         let pos_vec=Vec3.subtract(new Vec3(),arr_pos[0],arr_pos[1]).normalize()
         let disMul=Math.random()/2+1;
         let pos_end=new Vec3(arr_pos[0].x+pos_vec.x*(Math.random()<0.5?1:-1)*disMul*300,arr_pos[0].y+pos_vec.y*disMul*300)
-        let numBlock=Math.floor(Math.random()*4)
-        let middleBlock=this.createBlock(pos_end,numBlock,false)
+
+        //添加块后需要更改------
+        let BlockType=Math.floor(Math.random()*4)
+        let middleBlock=this.createBlock(pos_end,BlockType,false)
         let blockIndex=middleBlock.getSiblingIndex()
         this.hero.setSiblingIndex(blockIndex+1)
-        log("arr="+arr_pos)
     }
 
+    //块的移动
     moveDis(){
         let arr_pos:Vec3[]=[]
         let children=this.node.children
@@ -178,7 +182,6 @@ export class Game extends Component {
         }
         let pos_move=new Vec3(-(arr_pos[0].x+arr_pos[1].x)/2,-(arr_pos[0].y-arr_pos[1].y))
         children=this.node.children
-        log("move="+pos_move)
         for(let i=children.length-1;i>=0;i--){
             let Block=children[i].getComponent(block)
             if(Block){
@@ -204,9 +207,23 @@ export class Game extends Component {
             .start()
 
         this.specialBolck()
-        log(children.length)
     }
 
+    //判断最后一个块有没有碰到，需不需要生成下一个块
+    judgeCreatBlock(){
+        let children=this.node.children
+        for(let i=children.length-1;i>=0;i--){
+            let Block=children[i].getComponent(block)
+            if(Block){
+                if(Block.collide){
+                    this.judDis()
+                }
+                return
+            }
+        }
+    }
+
+    //生成块
     createBlock(pos_point,blockType,isFirst){
         let Block;
         if(this.blockPool.size()>0) {
@@ -215,13 +232,11 @@ export class Game extends Component {
             Block=instantiate(this.pre_block)
         }
         Block.parent=this.node  //确保 block 被添加到场景中
-        let blockIndex = Block.getSiblingIndex();
-        log("顺序："+blockIndex)
-        let getPos=Block.getComponent(block)
-        getPos.init(pos_point,blockType,isFirst)
+        Block.getComponent(block).init(pos_point,blockType,isFirst)
         return Block
     }
 
+    //回收block进pool
     putBlockToPool(block){
         this.blockPool.put(block)
     }
@@ -243,11 +258,10 @@ export class Game extends Component {
         if(this.isMoving) return
         if(this.hero.getComponent(hero).isMoving) return
         this.isTouchBegin=true
-        this.timeTouch=0
         this.heroPoint.active=false
         this.isTouchStart=true
-        this.isGetScore=-1
-        
+        this.blockGetScore=-1
+        this.timeTouch=0
     }
 
     onTouchMove(event: EventTouch){
@@ -263,20 +277,21 @@ export class Game extends Component {
         this.isTouchStart=false
 
         let pos_blockEnd=new Vec3(0,0)
-        let num=0
+        let cnt=0
         let children=this.node.children
         for(let i=children.length-1;i>=0;i--){
             let Block=children[i].getComponent(block)
             if(Block){
-                num++;
-                if(num==2){
+                cnt++;
+                if(cnt==2){
                     Block.touchEnd()
-                } else if(num==1){
+                } else if(cnt==1){
                     pos_blockEnd=Block.pos_pointWorld
                 }
             }
         }
 
+        //hero 跳跃距离
         this.hero.getComponent(hero).isMoving=true
         let heroUI=this.hero.getComponent(UITransform)
         let pos_hero=this.hero.getPosition()
@@ -292,6 +307,7 @@ export class Game extends Component {
         }
     }
 
+    //跳跃动作
     jumpTo(startPos, endPos, height, duration,endAngle){
         let heroUI=this.hero.getComponent(UITransform)
         heroUI.anchorY=0.5
@@ -305,7 +321,7 @@ export class Game extends Component {
 
         tween(this.hero)
             .parallel(
-                tween().to(duration/2,{position: peakPos},{easing:'linear'})
+                tween().to(duration/2,{position: peakPos},{easing:'linear'})  //跳跃缓动动作可以更改
                         .to(duration/2,{position: endPos},{easing:'linear'}),
                 tween().to(duration,{angle: endAngle})
             )
@@ -314,20 +330,19 @@ export class Game extends Component {
                 this.hero.setPosition(endPos.x,endPos.y-heroUI.height/2)
                 this.heroPoint.active=true
                 this.scheduleOnce(function(){
-                    if(this.isGetScore==-1){
-                        log("踩空")
+                    if(this.isGetScore==-1){  //踩空
                         this.heroPoint.active=false
-
                         let childrenBlocks=this.node.children.filter(child=>child.name ==='block');
                         let pos_hero=this.hero.getPosition()
                         let Block1=childrenBlocks[childrenBlocks.length-1]
                         let Block2=childrenBlocks[childrenBlocks.length-2]
                         let pos_point1=Block1.getComponent(block).pos_pointWorld
                         let pos_point2=Block2.getComponent(block).pos_pointWorld
+                        //hero落到两个block中间
                         if(pos_hero.x<pos_point1.x&&pos_hero.x>pos_point2.x){
                             this.hero.setSiblingIndex(Block1.getSiblingIndex()+1)
                             Block2.setSiblingIndex(this.hero.getSiblingIndex()+1)
-                        } else if (pos_hero.x>pos_point1.x&&pos_hero.x>pos_point2.x){
+                        } else if (pos_hero.x>pos_point1.x&&pos_hero.x>pos_point2.x){  
                             this.hero.setSiblingIndex(Block1.getSiblingIndex()-1)
                             Block2.setSiblingIndex(this.hero.getSiblingIndex()-1)
                         } else if (pos_hero.x<pos_point1.x&&pos_hero.x<pos_point2.x){
@@ -336,7 +351,7 @@ export class Game extends Component {
                         }
 
                         let maxIndex=this.getMaxIndex()
-                        this.nodeOver.setSiblingIndex(maxIndex+1)
+                        this.nodeOver.setSiblingIndex(maxIndex+1)  // 设置游戏结束界面优先级
 
                         tween(this.hero)
                             .by(0.3,{position: new Vec3(0,-70)})
@@ -346,8 +361,7 @@ export class Game extends Component {
                             .start()
                         this.getBestScore()
                         this.gameType=2
-                    } else if(this.isGetScore==0){
-                        log("滑倒")
+                    } else if(this.isGetScore==0){  //滑倒
                         let maxIndex=this.getMaxIndex()
                         this.nodeOver.setSiblingIndex(maxIndex+1)
                         this.nodeOver.active=true
@@ -362,6 +376,7 @@ export class Game extends Component {
             .start()
     }
 
+    //获取最高本地分数
     getBestScore(){
         let bestScr=JSON.parse(sys.localStorage.getItem('bestScore'));
         if(bestScr==null||bestScr<this.currentScore) {
@@ -371,6 +386,7 @@ export class Game extends Component {
         this.bestScore.string="历史最高分："+bestScr.toString()
     }
 
+    //获取当前节点最高优先级
     getMaxIndex() {
         let maxIndex=0;
         let children=this.node.children
@@ -380,19 +396,7 @@ export class Game extends Component {
         return maxIndex
     }
 
-    judgeCreatBlock(){
-        let children=this.node.children
-        for(let i=children.length-1;i>=0;i--){
-            let Block=children[i].getComponent(block)
-            if(Block){
-                if(Block.collide){
-                    this.judDis()
-                }
-                return
-            }
-        }
-    }
-        
+    //增加排行榜------
     addItem(num){
         let Item=instantiate(this.pre_item)
         let itemUI=Item.getComponent(UITransform);
@@ -414,17 +418,18 @@ export class Game extends Component {
   
     }
 
+    //按钮点击事件
     clickBtn(sender,str){
         if(str=="begin") {
-            log("点击了开始按钮")
             this.gameType=1
+            this.hero.angle=0
+            this.currentScore=0
+            this.score.string="0"
             this.nodePlay.active=true
             this.nodeReady.active=false
             this.hero.active=true
             this.heroPoint.active=false
-            this.hero.angle=0
-            this.currentScore=0
-            this.score.string="0"
+            
 
             let block1=this.createBlock(new Vec3(-140,-140),0,true)
             let block2=this.createBlock(new Vec3(110,32),1,true)
@@ -432,20 +437,17 @@ export class Game extends Component {
             this.hero.setSiblingIndex(blockIndex+1)
             this.addHeroAction(new Vec3(-140,-140))
         } else if (str=="rankings") {
-            log("点击了排行榜按钮")
             this.nodeRankings.active=true
         } else if (str=="close") {
-            log("点击了排行榜关闭按钮")
             this.nodeRankings.active=false
         } else if (str=="replay") {
-            log("点击了再玩一次按钮")
             this.cleanAllBlock()
-            this.nodeOver.active=false
             this.gameType=1
-            this.heroPoint.active=false
             this.hero.angle=0
             this.currentScore=0
             this.score.string="0"
+            this.heroPoint.active=false
+            this.nodeOver.active=false
 
             let block1=this.createBlock(new Vec3(-140,-140),0,true)
             let block2=this.createBlock(new Vec3(110,32),1,true)
@@ -453,14 +455,14 @@ export class Game extends Component {
             this.hero.setSiblingIndex(blockIndex+1)
             this.addHeroAction(new Vec3(-140,-140))
         } else if (str=="overRankings") {  //游戏结束查看排行榜
-            log("点击了游戏结束查看排行榜按钮")
             let maxIndex=this.getMaxIndex()
             this.nodeRankings.setSiblingIndex(maxIndex+1)
             this.nodeRankings.active=true
         }
     }
 
-    addHeroAction(pos){  //添加游戏开始时hero下落动作
+    //添加游戏开始时hero下落动作
+    addHeroAction(pos){  
         this.hero.getComponent(hero).isMoving=true
         this.hero.setPosition(pos.x,pos.y+200)
         tween(this.hero)
@@ -474,6 +476,7 @@ export class Game extends Component {
         this.hero.getComponent(hero).isMoving=false
     }
 
+    //清空界面上的所有块
     cleanAllBlock(){
         let children=this.node.children
         for(let i=children.length-1;i>=0;i--){
@@ -483,9 +486,6 @@ export class Game extends Component {
             }
         }
     }
-
-
-
 
     update(deltaTime: number) {
         if(this.isTouchBegin){

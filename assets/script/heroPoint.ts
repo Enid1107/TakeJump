@@ -32,22 +32,20 @@ export class hero extends Component {
                     Block.score=2
                     Block.collide=true
                     window.gameSubject.addScore(2)
-                    log("得两分")
                 } else if (otherCollider.tag==11&&selfCollider.tag==1000) {  //hero中心点和块碰撞
                     Block.score=1
                     Block.collide=true
                     window.gameSubject.addScore(1)
-                    log("得一分")
                 } 
             } 
 
-            if(window.gameSubject.isGetScore==-1) {
+            if(window.gameSubject.blockGetScore==-1) {
                 if(otherCollider.tag==10&&selfCollider.tag==1000) {  
-                    window.gameSubject.isGetScore=2
+                    window.gameSubject.blockGetScore=2
                 } else if (otherCollider.tag==11&&selfCollider.tag==1000) {  
-                    window.gameSubject.isGetScore=1
+                    window.gameSubject.blockGetScore=1
                 } else if (otherCollider.tag==11&&selfCollider.tag==1001) {  //hero和块碰撞
-                    window.gameSubject.isGetScore=0
+                    window.gameSubject.blockGetScore=0
                     let pos_blockPoint=Block.pos_pointWorld
                     let pos_hero=window.gameSubject.hero.getPosition()
                     let pos_intersect=Vec3.subtract(new Vec3(),pos_blockPoint,pos_hero)
@@ -69,28 +67,22 @@ export class hero extends Component {
                     window.gameSubject.gameType=2
                 }
             }
-
-            
         }
-        
     }
 
     // 只在两个碰撞体结束接触时被调用一次
     onEndContact (selfCollider: Collider2D, otherCollider: Collider2D, contact: IPhysics2DContact | null) {
-        
-        console.log('onEndContact');
+
     }
 
     // 每次将要处理碰撞体接触逻辑时被调用
     onPreSolve (selfCollider: Collider2D, otherCollider: Collider2D, contact: IPhysics2DContact | null) {
-        
-        console.log('onPreSolve');
+
     }
 
     // 每次处理完碰撞体接触逻辑时被调用
     onPostSolve (selfCollider: Collider2D, otherCollider: Collider2D, contact: IPhysics2DContact | null) {
-        
-        console.log('onPostSolve');
+
     }
 
     update(deltaTime: number) {
